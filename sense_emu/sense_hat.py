@@ -48,6 +48,7 @@ from . import RTIMU
 from .lock import EmulatorLock
 from .stick import SenseStick
 from .screen import init_screen, GAMMA_DEFAULT, GAMMA_LOW
+from .colour import ColourSensor
 
 
 class SenseHat(object):
@@ -154,6 +155,8 @@ class SenseHat(object):
         self._gyro_enabled = False
         self._accel_enabled = False
         self._stick = SenseStick()
+        self._colour = ColourSensor()
+
 
     ####
     # Text assets
@@ -246,6 +249,27 @@ class SenseHat(object):
         A :class:`SenseStick` object representing the Sense HAT's joystick.
         """
         return self._stick
+
+    ####
+    # Colour sensor
+    ####
+
+    @property
+    def colour(self):
+        try:
+            return self._colour
+        except AttributeError as e:
+            raise RuntimeError('This Sense HAT does not have a color sensor') from e
+
+    color = colour
+
+    def has_colour_sensor(self):
+        try:
+            self._colour
+        except:
+            return False
+        else:
+            return True
 
     ####
     # LED Matrix

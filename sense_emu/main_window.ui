@@ -28,19 +28,13 @@ Author: Dave Jones
   <!-- interface-description An emulator for the Raspberry Pi Sense HAT -->
   <!-- interface-copyright 2016 Raspberry Pi Foundation -->
   <!-- interface-authors Dave Jones -->
-  <object class="GtkAdjustment" id="humidity">
-    <property name="upper">100</property>
-    <property name="value">50</property>
+  <object class="GtkAdjustment" id="temperature">
+    <property name="lower">-30</property>
+    <property name="upper">105</property>
+    <property name="value">25</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
-    <signal name="value-changed" handler="humidity_changed" swapped="no"/>
-  </object>
-  <object class="GtkAdjustment" id="pitch">
-    <property name="lower">-180</property>
-    <property name="upper">180</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">15</property>
-    <signal name="value-changed" handler="orientation_changed" swapped="no"/>
+    <signal name="value-changed" handler="temperature_changed" swapped="no"/>
   </object>
   <object class="GtkAdjustment" id="pressure">
     <property name="lower">260</property>
@@ -50,20 +44,12 @@ Author: Dave Jones
     <property name="page_increment">100</property>
     <signal name="value-changed" handler="pressure_changed" swapped="no"/>
   </object>
-  <object class="GtkAdjustment" id="roll">
-    <property name="lower">-180</property>
-    <property name="upper">180</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">15</property>
-    <signal name="value-changed" handler="orientation_changed" swapped="no"/>
-  </object>
-  <object class="GtkAdjustment" id="temperature">
-    <property name="lower">-30</property>
-    <property name="upper">105</property>
-    <property name="value">25</property>
+  <object class="GtkAdjustment" id="humidity">
+    <property name="upper">100</property>
+    <property name="value">50</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
-    <signal name="value-changed" handler="temperature_changed" swapped="no"/>
+    <signal name="value-changed" handler="humidity_changed" swapped="no"/>
   </object>
   <object class="GtkAdjustment" id="yaw">
     <property name="lower">-180</property>
@@ -71,6 +57,41 @@ Author: Dave Jones
     <property name="step_increment">1</property>
     <property name="page_increment">15</property>
     <signal name="value-changed" handler="orientation_changed" swapped="no"/>
+  </object>
+  <object class="GtkAdjustment" id="pitch">
+    <property name="lower">-180</property>
+    <property name="upper">180</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">15</property>
+    <signal name="value-changed" handler="orientation_changed" swapped="no"/>
+  </object>
+  <object class="GtkAdjustment" id="roll">
+    <property name="lower">-180</property>
+    <property name="upper">180</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">15</property>
+    <signal name="value-changed" handler="orientation_changed" swapped="no"/>
+  </object>
+  <object class="GtkAdjustment" id="red">
+    <property name="lower">0</property>
+    <property name="upper">255</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">5</property>
+    <signal name="value-changed" handler="colour_changed" swapped="no"/>
+  </object>
+  <object class="GtkAdjustment" id="green">
+    <property name="lower">0</property>
+    <property name="upper">255</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">5</property>
+    <signal name="value-changed" handler="colour_changed" swapped="no"/>
+  </object>
+  <object class="GtkAdjustment" id="blue">
+    <property name="lower">0</property>
+    <property name="upper">255</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">5</property>
+    <signal name="value-changed" handler="colour_changed" swapped="no"/>
   </object>
   <object class="GtkApplicationWindow" id="window">
     <property name="can_focus">False</property>
@@ -565,6 +586,115 @@ Author: Dave Jones
           </object>
           <packing>
             <property name="left_attach">2</property>
+            <property name="top_attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkGrid" id="colour_grid">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="hexpand">True</property>
+            <property name="row_spacing">6</property>
+            <property name="column_spacing">6</property>
+            <child>
+              <object class="GtkLabel" id="red_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
+                <property name="label" translatable="yes">Red</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="green_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
+                <property name="label" translatable="yes">Green</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="blue_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
+                <property name="label" translatable="yes">Blue</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="red_scale">
+                <property name="width_request">100</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">red</property>
+                <property name="round_digits">0</property>
+                <property name="value_pos">right</property>
+                <signal name="format-value" handler="format_colour" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="green_scale">
+                <property name="width_request">100</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">green</property>
+                <property name="round_digits">0</property>
+                <property name="value_pos">right</property>
+                <signal name="format-value" handler="format_colour" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="blue_scale">
+                <property name="width_request">100</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">blue</property>
+                <property name="round_digits">0</property>
+                <property name="value_pos">right</property>
+                <signal name="format-value" handler="format_colour" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="colour_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Colour</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="left_attach">3</property>
             <property name="top_attach">0</property>
           </packing>
         </child>

@@ -54,6 +54,7 @@ from .screen import ScreenClient
 from .imu import IMUServer
 from .pressure import PressureServer
 from .humidity import HumidityServer
+from .colour import ColourServer
 from .stick import StickServer, SenseStick
 from .lock import EmulatorLock
 from .common import HEADER_REC, DATA_REC, DataRecord, slow_pi
@@ -169,6 +170,7 @@ class EmuApplication(Gtk.Application):
         self.imu = IMUServer(simulate_world=self.settings.get_boolean('simulate-imu'))
         self.pressure = PressureServer(simulate_noise=self.settings.get_boolean('simulate-env'))
         self.humidity = HumidityServer(simulate_noise=self.settings.get_boolean('simulate-env'))
+        self.colour = ColourServer()
         self.screen = ScreenClient()
         self.stick = StickServer()
 
@@ -636,6 +638,9 @@ class MainWindow(Gtk.ApplicationWindow):
             999 # should never happen
             )
 
+    def format_colour(self, scale, value):
+        return f"{value:.0f}"
+
     def orientation_changed(self, adjustment):
         if not self._play_thread:
             self.props.application.imu.set_orientation((
@@ -643,6 +648,14 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.ui.pitch.props.value,
                 self.ui.yaw.props.value,
                 ))
+
+    def colour_changed(self, adjustment):
+        if not self._play_thread:
+            self.props.application.colour.set_colour(
+                self.ui.red.props.value,
+                self.ui.green.props.value,
+                self.ui.blue.props.value,
+                )
 
     def stick_key_pressed(self, button, event):
         try:
