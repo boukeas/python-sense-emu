@@ -35,6 +35,10 @@ class HardwareInterface:
     GAIN_VALUES = (1, 4, 16, 60)
     CLOCK_STEP = 0.0024 # the clock step is 2.4ms
 
+    @staticmethod
+    def max_value(integration_cycles):
+        return 2**16 if integration_cycles >= 64 else 1024*integration_cycles
+
     def get_enabled(self):
         raise NotImplementedError
 
@@ -53,7 +57,7 @@ class HardwareInterface:
     def set_integration_cycles(self, value):
         raise NotImplementedError
 
-    def get_all(self):
+    def get_raw(self):
         raise NotImplementedError
 
     def get_red(self):
@@ -152,10 +156,18 @@ class StatusFile(HardwareInterface):
     def get_integration_cycles(self):
         return self.read().integration_cycles
 
-    def set_integration_cycles(self, value):
-        self.write(self.read()._replace(integration_cycles=value))
+    def set_integration_cycles(self, cycles):
+        status = self.read()
+        prev_cycles = status.integration_cycles
+        scaling = self.max_value(cycles) // self.max_value(prev_cycles)
+        self.write(status._replace(
+            integration_cycles=cycles,
+            R=status.R * scaling,
+            G=status.G * scaling,
+            B=status.B * scaling
+        ))
 
-    def get_all(self):
+    def get_raw(self):
         _, R, G, B, C, _, _ = self.read()
         return (R, G, B, C)
 
@@ -208,7 +220,7 @@ class ColourSensor:
         if 1 <= cycles <= 256:
             self.interface.set_integration_cycles(cycles)
             self._integration_time = cycles * self.interface.CLOCK_STEP
-            self._max_value = 2**16 if cycles >= 64 else 1024*cycles
+            self._max_value = self.interface.max_value(cycles)
             self._scaling = self._max_value // 256
             sleep(self.interface.CLOCK_STEP)
         else:
@@ -224,7 +236,7 @@ class ColourSensor:
 
     @property
     def colour_raw(self):
-        return self.interface.get_all()
+        return self.interface.get_raw()
 
     @property
     def colour(self):
@@ -270,33 +282,16 @@ class ColourSensor:
 
 ######
 
-'''
-from __future__ import (
-    unicode_literals,
-    absolute_import,
-    print_function,
-    division,
-    )
-nstr = str
-str = type('')
-'''
-
 import time
 import subprocess
 from random import Random
 from threading import Thread, Event
 import numpy as np
 
-class ColourServer(object):
+class ColourServer:
 
     def __init__(self):
         self.interface = StatusFile()
-        #self.gain = gain
-        #self.integration_cycles = integration_cycles
-        #self.enabled = 1
-        #self._colour = self.interface.read()
-        _, R, G, B, _, _, _ = self.interface.read()
-        self._colour = (R, G, B)
 
         # The queue lengths are selected to accurately represent the response
         # time of the sensors
@@ -313,5 +308,11 @@ class ColourServer(object):
         self.interface.write(value)
 
     def set_colour(self, R, G, B):
-        self._colour = (R, G, B)
-        self.interface.write(self.interface.read()._replace(R=int(R), G=int(G), B=int(B)))
+        status = self.interface.read()
+        cycles = status.integration_cycles
+        max_value = self.interface.max_value(cycles)
+        scaling = max_value // 256
+        self.interface.write(status._replace(
+            R=int(R * scaling), 
+            G=int(G * scaling), 
+            B=int(B * scaling)))
