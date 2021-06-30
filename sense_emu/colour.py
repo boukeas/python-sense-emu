@@ -25,8 +25,9 @@ import io, os, sys, errno
 import mmap
 from struct import Struct
 from collections import namedtuple
-
 from time import sleep
+
+from .common import clamp
 
 _error_str = "Failed to initialise TCS34725 colour sensor."
 
@@ -119,13 +120,18 @@ class StatusFile(HardwareInterface):
             fd.seek(self.COLOUR_DATA.size)
             fd.truncate()
         except IOError as e:
-            # If the colour sensor device file doesn't exist, zero it into existence
+            # If the colour sensor device file doesn't exist, initialise it
             if e.errno == errno.ENOENT:
                 fd = io.open(self.filename(), 'w+b', buffering=0)
-                fd.write(b'\x00' * self.COLOUR_DATA.size)
+                fd.write(self.COLOUR_DATA.pack(*self.ColourData(
+                    enabled=True,
+                    R=0, G=0, B=0, C=0,
+                    gain=1,
+                    integration_cycles=1)))
+                # fd.write(b'\x00' * self.COLOUR_DATA.size)
             else:
                 raise IOError from e
-        else:
+        finally:
             self._fd = fd
             self._map = mmap.mmap(self._fd.fileno(), 0, access=mmap.ACCESS_WRITE)
 
@@ -164,7 +170,8 @@ class StatusFile(HardwareInterface):
             integration_cycles=cycles,
             R=status.R * scaling,
             G=status.G * scaling,
-            B=status.B * scaling
+            B=status.B * scaling,
+            C=status.C * scaling,
         ))
 
     def get_raw(self):
@@ -307,6 +314,10 @@ class ColourServer:
     def _write(self, value):
         self.interface.write(value)
 
+    @staticmethod
+    def _C_from_RGB(R, G, B):
+        return clamp(R + G + B, 0, 255)
+
     def set_colour(self, R, G, B):
         status = self.interface.read()
         cycles = status.integration_cycles
@@ -315,4 +326,5 @@ class ColourServer:
         self.interface.write(status._replace(
             R=int(R * scaling), 
             G=int(G * scaling), 
-            B=int(B * scaling)))
+            B=int(B * scaling),
+            C=int(self._C_from_RGB(R, G, B) * scaling)))
