@@ -329,7 +329,7 @@ class ScreenWidget(Gtk.DrawingArea):
         self.set_size_request(265, 265)
 
         # Load graphics assets
-        self._board_full = load_image('sense_emu.png')
+        self._board_full = load_image('sense_emu_v2.png')
         self._board_scaled = self._board_full
         self._orient_full = load_image('orientation.png')
         self._orient_image = self._orient_full
