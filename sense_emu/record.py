@@ -36,8 +36,8 @@ from struct import Struct
 from . import __version__
 from .i18n import _
 from .terminal import TerminalApplication, FileType
-from .common import HEADER_REC, DATA_REC_v2
-from .colour import ColourSensor
+from .common import HEADER_REC, DATA_REC, DATA_REC_v2
+from .colour import ColourSensor, I2C
 
 
 class RecordApplication(TerminalApplication):
@@ -93,11 +93,10 @@ class RecordApplication(TerminalApplication):
         nan = float('nan')
 
         try:
-            csensor = ColourSensor()
-            csensor_flag = True
+            csensor = ColourSensor(interface=I2C)
+            ver = 2
         except Exception as e:
-            logging.warning('Failed to initialise Sense HAT colour sensor')
-            csensor_flag = False
+            ver = 1
 
         logging.info(_('Starting recording'))
         rec_count = 0
@@ -105,7 +104,7 @@ class RecordApplication(TerminalApplication):
             terminate_at = time() + args.duration
         else:
             terminate_at = time() + 1e100
-        args.output.write(HEADER_REC.pack(b'SENSEHAT', 2, time()))
+        args.output.write(HEADER_REC.pack(b'SENSEHAT', ver, time()))
         status_stop = Event()
         def status():
             while not status_stop.wait(1.0):
@@ -123,19 +122,32 @@ class RecordApplication(TerminalApplication):
                     ox, oy, oz = imu.getFusionData()
                     pvalid, pressure, ptvalid, ptemp = psensor.pressureRead()
                     hvalid, humidity, htvalid, htemp = hsensor.humidityRead()
-                    R, G, B, C = csensor.colour_raw if csensor_flag else (nan, nan, nan, nan)
-                    args.output.write(DATA_REC_v2.pack(
-                        timestamp,
-                        pressure if pvalid else nan,
-                        ptemp if ptvalid else nan,
-                        humidity if hvalid else nan,
-                        htemp if htvalid else nan,
-                        ax, ay, az,
-                        gx, gy, gz,
-                        cx, cy, cz,
-                        ox, oy, oz,
-                        R, G, B, C
-                        ))
+                    if ver == 1:
+                        args.output.write(DATA_REC.pack(
+                            timestamp,
+                            pressure if pvalid else nan,
+                            ptemp if ptvalid else nan,
+                            humidity if hvalid else nan,
+                            htemp if htvalid else nan,
+                            ax, ay, az,
+                            gx, gy, gz,
+                            cx, cy, cz,
+                            ox, oy, oz
+                            ))
+                    else:
+                        R, G, B, C = csensor.colour_raw
+                        args.output.write(DATA_REC_v2.pack(
+                            timestamp,
+                            pressure if pvalid else nan,
+                            ptemp if ptvalid else nan,
+                            humidity if hvalid else nan,
+                            htemp if htvalid else nan,
+                            ax, ay, az,
+                            gx, gy, gz,
+                            cx, cy, cz,
+                            ox, oy, oz,
+                            R, G, B, C
+                            ))
                     if args.flush:
                         args.output.flush()
                     rec_count += 1
