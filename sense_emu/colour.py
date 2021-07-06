@@ -462,20 +462,17 @@ class ColourSensor:
     def integration_cycles(self, integration_cycles):
         if 1 <= integration_cycles <= 256:
             self.interface.set_integration_cycles(integration_cycles)
-            self._integration_time = integration_cycles * self.interface.CLOCK_STEP
-            self._max_value = self.interface.max_value(integration_cycles)
-            self._scaling = self._max_value // 256
             sleep(self.interface.CLOCK_STEP)
         else:
             raise ValueError(f'Cannot set integration cycles to {integration_cycles} (1-256)')
 
     @property
     def integration_time(self):
-        return self._integration_time
+        return self.integration_cycles * self.interface.CLOCK_STEP
 
     @property
     def max_raw(self):
-        return self._max_value
+        return self.interface.max_value(self.integration_cycles)
 
     @property
     def colour_raw(self):
@@ -483,7 +480,8 @@ class ColourSensor:
 
     @property
     def colour(self):
-        return tuple(reading // self._scaling for reading in self.colour_raw)
+        scaling = self.max_raw // 256
+        return tuple(reading // scaling for reading in self.colour_raw)
 
     color_raw = colour_raw
     color = colour
