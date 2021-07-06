@@ -542,6 +542,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self.ui.humidity.props.value = self.props.application.humidity.humidity
         self.ui.pressure.props.value = self.props.application.pressure.pressure
         self.ui.temperature.props.value = self.props.application.humidity.temperature
+        R, G, B, C = self.props.application.colour.emulated_sensor.colour
+        self.ui.red.props.value = R
+        self.ui.green.props.value = G
+        self.ui.blue.props.value = B
+        self.ui.clear.props.value = C
+        self.ui.clear_scale.props.sensitive = False
 
         # Set up attributes for the joystick buttons
         self._stick_held_lock = Lock()
@@ -656,6 +662,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.ui.green.props.value,
                 self.ui.blue.props.value,
                 )
+            self.ui.clear.props.value = self.props.application.colour.emulated_sensor.clear
 
     def stick_key_pressed(self, button, event):
         try:
@@ -805,6 +812,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.ui.red.props.value = R
         self.ui.green.props.value = G
         self.ui.blue.props.value = B
+        self.ui.clear.props.value = C
 
         return False
 

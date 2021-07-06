@@ -544,7 +544,7 @@ class ColourServer:
 
     @staticmethod
     def _C_from_RGB(R, G, B):
-        return clamp(R + G + B, 0, 255)
+        return clamp(0.9*(R+G+B), max(R, G, B), 255)
 
     def set_raw_from_scaled(self, R, G, B):
         status = self._read()

@@ -93,6 +93,13 @@ Author: Dave Jones
     <property name="page_increment">5</property>
     <signal name="value-changed" handler="colour_changed" swapped="no"/>
   </object>
+  <object class="GtkAdjustment" id="clear">
+    <property name="lower">0</property>
+    <property name="upper">255</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">5</property>
+    <signal name="value-changed" handler="colour_changed" swapped="no"/>
+  </object>
   <object class="GtkApplicationWindow" id="window">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Sense HAT Emulator</property>
@@ -467,6 +474,18 @@ Author: Dave Jones
               </packing>
             </child>
             <child>
+              <object class="GtkLabel" id="clear_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
+                <property name="label" translatable="yes">Clear</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">4</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkScale" id="red_scale">
                 <property name="width_request">100</property>
                 <property name="visible">True</property>
@@ -512,6 +531,22 @@ Author: Dave Jones
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="clear_scale">
+                <property name="width_request">100</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">clear</property>
+                <property name="round_digits">0</property>
+                <property name="value_pos">right</property>
+                <signal name="format-value" handler="format_colour" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">4</property>
               </packing>
             </child>
             <child>
