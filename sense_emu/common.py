@@ -60,7 +60,9 @@ DATA_REC_v2 = Struct(nstr(
     'ddd' # raw gyro readings
     'ddd' # raw compass readings
     'ddd' # calculated pose
-    '4I' # colour sensor raw RGBC readings
+    '4I'  # colour sensor raw RGBC readings
+    'H'   # colour sensor gain
+    'H'   # colour sensor integration cycles
     ))
 
 DataRecord = namedtuple('DataRecord', (
@@ -81,7 +83,9 @@ DataRecord_v2 = namedtuple('DataRecord_v2', (
     'gx', 'gy', 'gz',
     'cx', 'cy', 'cz',
     'ox', 'oy', 'oz',
-    'R', 'G', 'B', 'C'
+    'R', 'G', 'B', 'C',
+    'gain',
+    'integration_cycles'
     ))
 
 

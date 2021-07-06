@@ -115,6 +115,8 @@ class PlayApplication(TerminalApplication):
                         data.G,
                         data.B,
                         data.C)
+                    csensor.emulated_sensor.gain = data.gain
+                    csensor.emulated_sensor.integration_cycles = data.integration_cycles + 1
                 except:
                     pass
 

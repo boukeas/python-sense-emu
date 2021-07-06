@@ -777,6 +777,10 @@ class MainWindow(Gtk.ApplicationWindow):
                         data.G,
                         data.B,
                         data.C)
+                    if data.gain != self.props.application.colour.emulated_sensor.gain:
+                        self.props.application.colour.emulated_sensor.gain = data.gain
+                    if data.integration_cycles + 1 != self.props.application.colour.emulated_sensor.integration_cycles:
+                        self.props.application.colour.emulated_sensor.integration_cycles = data.integration_cycles + 1
 
                 # Again, would be better to use custom signals here but
                 # attempting to do so just results in seemingly random

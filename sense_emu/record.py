@@ -61,6 +61,14 @@ class RecordApplication(TerminalApplication):
             help=_('the delay between each reading in seconds (default: the '
                    'IMU polling interval, typically 0.003 seconds)'))
         self.parser.add_argument(
+            '-g', '--gain', dest='gain', action='store',
+            type=int,
+            help=_('The colour sensor gain (either 1, 4, 16 or 60, default: 1)'))
+        self.parser.add_argument(
+            '-t', '--cycles', dest='cycles', action='store',
+            type=int,
+            help=_('The number of integration cycles (1 to 256, default: 1)'))
+        self.parser.add_argument(
             '-f', '--flush', dest='flush', action='store_true', default=False,
             help=_('flush every record to disk immediately; reduces chances of '
             'truncated data on power loss, but greatly increases disk activity'))
@@ -94,6 +102,10 @@ class RecordApplication(TerminalApplication):
 
         try:
             csensor = ColourSensor(interface=I2C)
+            gain = args.gain if args.gain is not None else 1
+            integration_cycles = args.cycles if args.cycles is not None else 1
+            csensor.gain = gain
+            csensor.integration_cycles = integration_cycles
             ver = 2
         except Exception as e:
             ver = 1
@@ -146,7 +158,9 @@ class RecordApplication(TerminalApplication):
                             gx, gy, gz,
                             cx, cy, cz,
                             ox, oy, oz,
-                            R, G, B, C
+                            R, G, B, C,
+                            gain,
+                            integration_cycles-1
                             ))
                     if args.flush:
                         args.output.flush()
