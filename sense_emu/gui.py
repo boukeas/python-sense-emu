@@ -733,6 +733,13 @@ class MainWindow(Gtk.ApplicationWindow):
     def _play_run(self, f):
         err = None
         try:
+            magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
+            if magic != b'SENSEHAT':
+                raise IOError(_('%s is not a Sense HAT recording') % f.name)
+            if ver == 2:
+                DATA_REC = DATA_REC_v2
+            elif ver != 1:
+                raise IOError(_('%s has unrecognized file version number') % f.name)
             # Calculate how many records are in the file; we'll use this later
             # when updating the progress bar
             rec_total = (f.seek(0, io.SEEK_END) - HEADER_REC.size) // DATA_REC.size
