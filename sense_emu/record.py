@@ -23,6 +23,7 @@ from __future__ import (
     print_function,
     division,
     )
+
 str = type('')
 
 import os
@@ -35,7 +36,8 @@ from struct import Struct
 from . import __version__
 from .i18n import _
 from .terminal import TerminalApplication, FileType
-from .common import HEADER_REC, DATA_REC
+from .common import HEADER_REC, DATA_REC_v2
+from .colour import ColourSensor
 
 
 class RecordApplication(TerminalApplication):
@@ -90,13 +92,20 @@ class RecordApplication(TerminalApplication):
             args.interval = imu.IMUGetPollInterval() / 1000.0 # seconds
         nan = float('nan')
 
+        try:
+            csensor = ColourSensor()
+            csensor_flag = True
+        except Exception as e:
+            logging.warning('Failed to initialise Sense HAT colour sensor')
+            csensor_flag = False
+
         logging.info(_('Starting recording'))
         rec_count = 0
         if args.duration:
             terminate_at = time() + args.duration
         else:
             terminate_at = time() + 1e100
-        args.output.write(HEADER_REC.pack(b'SENSEHAT', 1, time()))
+        args.output.write(HEADER_REC.pack(b'SENSEHAT', 2, time()))
         status_stop = Event()
         def status():
             while not status_stop.wait(1.0):
@@ -114,7 +123,8 @@ class RecordApplication(TerminalApplication):
                     ox, oy, oz = imu.getFusionData()
                     pvalid, pressure, ptvalid, ptemp = psensor.pressureRead()
                     hvalid, humidity, htvalid, htemp = hsensor.humidityRead()
-                    args.output.write(DATA_REC.pack(
+                    R, G, B, C = csensor.colour_raw if csensor_flag else (nan, nan, nan, nan)
+                    args.output.write(DATA_REC_v2.pack(
                         timestamp,
                         pressure if pvalid else nan,
                         ptemp if ptvalid else nan,
@@ -124,6 +134,7 @@ class RecordApplication(TerminalApplication):
                         gx, gy, gz,
                         cx, cy, cz,
                         ox, oy, oz,
+                        R, G, B, C
                         ))
                     if args.flush:
                         args.output.flush()

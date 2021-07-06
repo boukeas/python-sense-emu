@@ -34,11 +34,12 @@ from struct import Struct
 from . import __version__
 from .i18n import _
 from .terminal import TerminalApplication, FileType
-from .common import HEADER_REC, DATA_REC, DataRecord
+from .common import DataRecord, DataRecord_v2, HEADER_REC, DATA_REC, DATA_REC_v2
 from .imu import IMUServer
 from .pressure import PressureServer
 from .humidity import HumidityServer
 from .lock import EmulatorLock
+from .colour import ColourSensor, ColourServer
 
 
 class PlayApplication(TerminalApplication):
@@ -54,7 +55,10 @@ class PlayApplication(TerminalApplication):
         magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
         if magic != b'SENSEHAT':
             raise IOError(_('Invalid magic number at start of input'))
-        if ver != 1:
+        if ver == 2:
+            DATA_REC = DATA_REC_v2
+            DataRecord = DataRecord_v2
+        elif ver != 1:
             raise IOError(_('Unrecognized file version number (%d)') % ver)
         logging.info(
             _('Playing back recording taken at %s'),
@@ -83,6 +87,7 @@ class PlayApplication(TerminalApplication):
             imu = IMUServer(simulate_world=False)
             psensor = PressureServer(simulate_noise=False)
             hsensor = HumidityServer(simulate_noise=False)
+            csensor = ColourServer()
             skipped = 0
             for rec, data in enumerate(self.source(args.input)):
                 now = time()
@@ -101,6 +106,15 @@ class PlayApplication(TerminalApplication):
                     (data.cx, data.cy, data.cz),
                     (data.ox, data.oy, data.oz),
                     )
+                try:
+                    csensor.set_raw(
+                        data.R,
+                        data.G,
+                        data.B,
+                        data.C)
+                except:
+                    pass
+
             if skipped:
                 logging.warning(_('Skipped %d records during playback'), skipped)
             logging.info(_('Finished playback of %d records'), rec)

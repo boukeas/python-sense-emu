@@ -35,7 +35,7 @@ from collections import namedtuple
 HEADER_REC = Struct(nstr(
     '='  # native order, standard sizing
     '8s' # magic number ("SENSEHAT")
-    'b'  # version number (1)
+    'b'  # version number (1 or 2)
     '7x' # padding
     'd'  # initial timestamp
     ))
@@ -51,6 +51,18 @@ DATA_REC = Struct(nstr(
     'ddd' # calculated pose
     ))
 
+DATA_REC_v2 = Struct(nstr(
+    '='   # native order, standard sizing
+    'd'   # timestamp
+    'dd'  # pressure+temp readings
+    'dd'  # humidity+temp readings
+    'ddd' # raw accelerometer readings
+    'ddd' # raw gyro readings
+    'ddd' # raw compass readings
+    'ddd' # calculated pose
+    '4I' # colour sensor raw RGBC readings
+    ))
+
 DataRecord = namedtuple('DataRecord', (
     'timestamp',
     'pressure', 'ptemp',
@@ -58,7 +70,18 @@ DataRecord = namedtuple('DataRecord', (
     'ax', 'ay', 'az',
     'gx', 'gy', 'gz',
     'cx', 'cy', 'cz',
+    'ox', 'oy', 'oz'
+    ))
+
+DataRecord_v2 = namedtuple('DataRecord_v2', (
+    'timestamp',
+    'pressure', 'ptemp',
+    'humidity', 'htemp',
+    'ax', 'ay', 'az',
+    'gx', 'gy', 'gz',
+    'cx', 'cy', 'cz',
     'ox', 'oy', 'oz',
+    'R', 'G', 'B', 'C'
     ))
 
 

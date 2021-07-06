@@ -48,7 +48,7 @@ from . import RTIMU
 from .lock import EmulatorLock
 from .stick import SenseStick
 from .screen import init_screen, GAMMA_DEFAULT, GAMMA_LOW
-from .colour import ColourSensor
+from .colour import ColourSensor, StatusFile
 
 
 class SenseHat(object):
@@ -155,7 +155,7 @@ class SenseHat(object):
         self._gyro_enabled = False
         self._accel_enabled = False
         self._stick = SenseStick()
-        self._colour = ColourSensor()
+        self._colour = ColourSensor(interface=StatusFile)
 
 
     ####

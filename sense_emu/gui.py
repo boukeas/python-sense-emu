@@ -57,7 +57,7 @@ from .humidity import HumidityServer
 from .colour import ColourServer
 from .stick import StickServer, SenseStick
 from .lock import EmulatorLock
-from .common import HEADER_REC, DATA_REC, DataRecord, slow_pi
+from .common import HEADER_REC, DATA_REC, DATA_REC_v2, DataRecord, DataRecord_v2, slow_pi
 
 
 def main():
@@ -651,7 +651,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def colour_changed(self, adjustment):
         if not self._play_thread:
-            self.props.application.colour.set_colour(
+            self.props.application.colour.set_raw_from_scaled(
                 self.ui.red.props.value,
                 self.ui.green.props.value,
                 self.ui.blue.props.value,
@@ -754,6 +754,12 @@ class MainWindow(Gtk.ApplicationWindow):
                     (data.cx, data.cy, data.cz),
                     (data.ox, data.oy, data.oz),
                     )
+                self.props.application.colour.set_raw(
+                    data.R,
+                    data.G,
+                    data.B,
+                    data.C)
+
                 # Again, would be better to use custom signals here but
                 # attempting to do so just results in seemingly random
                 # segfaults during playback
@@ -787,6 +793,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self.ui.yaw.props.value = math.degrees(self.props.application.imu.orientation[2])
         self.ui.pitch.props.value = math.degrees(self.props.application.imu.orientation[1])
         self.ui.roll.props.value = math.degrees(self.props.application.imu.orientation[0])
+
+        R, G, B, C = self.props.application.colour.emulated_sensor.colour
+        self.ui.red.props.value = R
+        self.ui.green.props.value = G
+        self.ui.blue.props.value = B
+
         return False
 
     def play_stop_clicked(self, button):
@@ -802,7 +814,10 @@ class MainWindow(Gtk.ApplicationWindow):
         magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
         if magic != b'SENSEHAT':
             raise IOError(_('%s is not a Sense HAT recording') % f.name)
-        if ver != 1:
+        if ver == 2:
+            DATA_REC = DATA_REC_v2
+            DataRecord = DataRecord_v2
+        elif ver != 1:
             raise IOError(_('%s has unrecognized file version number') % f.name)
         offset = time() - offset
         while True:
@@ -817,8 +832,9 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _play_controls_setup(self, filename):
         # Disable all the associated user controls while playing back
-        self.ui.environ_box.props.sensitive = False
+        self.ui.environment_grid.props.sensitive = False
         self.ui.gyro_grid.props.sensitive = False
+        self.ui.colour_grid.props.sensitive = False
         # Disable simulation threads as we're going to manipulate the
         # values precisely
         self._play_restore = (
@@ -841,8 +857,9 @@ class MainWindow(Gtk.ApplicationWindow):
             self.props.application.humidity.simulate_noise,
             self.props.application.imu.simulate_world,
             ) = self._play_restore
-        self.ui.environ_box.props.sensitive = True
+        self.ui.environment_grid.props.sensitive = True
         self.ui.gyro_grid.props.sensitive = True
+        self.ui.colour_grid.props.sensitive = True
         self._play_thread = None
         # If an exception occurred in the background thread, display the
         # error in an appropriate dialog
