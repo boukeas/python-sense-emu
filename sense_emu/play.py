@@ -55,23 +55,26 @@ class PlayApplication(TerminalApplication):
         magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
         if magic != b'SENSEHAT':
             raise IOError(_('Invalid magic number at start of input'))
-        if ver == 2:
-            DATA_REC = DATA_REC_v2
-            DataRecord = DataRecord_v2
-        elif ver != 1:
-            raise IOError(_('Unrecognized file version number (%d)') % ver)
+        if ver == 1:
+            local_DATA_REC = DATA_REC
+            local_DataRecord = DataRecord
+        elif ver == 2:
+            local_DATA_REC = DATA_REC_v2
+            local_DataRecord = DataRecord_v2
+        else:
+            raise IOError(_('%s has unrecognized file version number') % f.name)
         logging.info(
             _('Playing back recording taken at %s'),
             dt.datetime.fromtimestamp(offset).strftime('%c'))
         offset = time() - offset
         while True:
-            buf = f.read(DATA_REC.size)
+            buf = f.read(local_DATA_REC.size)
             if not buf:
                 break
-            elif len(buf) < DATA_REC.size:
+            elif len(buf) < local_DATA_REC.size:
                 raise IOError(_('Incomplete data record at end of file'))
             else:
-                data = DataRecord(*DATA_REC.unpack(buf))
+                data = local_DataRecord(*local_DATA_REC.unpack(buf))
                 yield data._replace(timestamp=data.timestamp + offset)
 
     def main(self, args):

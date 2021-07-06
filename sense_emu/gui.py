@@ -743,13 +743,16 @@ class MainWindow(Gtk.ApplicationWindow):
             magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
             if magic != b'SENSEHAT':
                 raise IOError(_('%s is not a Sense HAT recording') % f.name)
-            if ver == 2:
-                DATA_REC = DATA_REC_v2
-            elif ver != 1:
+            if ver == 1:
+                local_DATA_REC = DATA_REC
+                self.ui.colour_grid.props.visible = False
+            elif ver == 2:
+                local_DATA_REC = DATA_REC_v2
+            else:
                 raise IOError(_('%s has unrecognized file version number') % f.name)
             # Calculate how many records are in the file; we'll use this later
             # when updating the progress bar
-            rec_total = (f.seek(0, io.SEEK_END) - HEADER_REC.size) // DATA_REC.size
+            rec_total = (f.seek(0, io.SEEK_END) - HEADER_REC.size) // local_DATA_REC.size
             f.seek(0)
             skipped = 0
             for rec, data in enumerate(self._play_source(f)):
@@ -768,11 +771,12 @@ class MainWindow(Gtk.ApplicationWindow):
                     (data.cx, data.cy, data.cz),
                     (data.ox, data.oy, data.oz),
                     )
-                self.props.application.colour.set_raw(
-                    data.R,
-                    data.G,
-                    data.B,
-                    data.C)
+                if ver > 1:
+                    self.props.application.colour.set_raw(
+                        data.R,
+                        data.G,
+                        data.B,
+                        data.C)
 
                 # Again, would be better to use custom signals here but
                 # attempting to do so just results in seemingly random
@@ -829,20 +833,23 @@ class MainWindow(Gtk.ApplicationWindow):
         magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
         if magic != b'SENSEHAT':
             raise IOError(_('%s is not a Sense HAT recording') % f.name)
-        if ver == 2:
-            DATA_REC = DATA_REC_v2
-            DataRecord = DataRecord_v2
-        elif ver != 1:
+        if ver == 1:
+            local_DATA_REC = DATA_REC
+            local_DataRecord = DataRecord
+        elif ver == 2:
+            local_DATA_REC = DATA_REC_v2
+            local_DataRecord = DataRecord_v2
+        else:
             raise IOError(_('%s has unrecognized file version number') % f.name)
         offset = time() - offset
         while True:
-            buf = f.read(DATA_REC.size)
+            buf = f.read(local_DATA_REC.size)
             if not buf:
                 break
-            elif len(buf) < DATA_REC.size:
+            elif len(buf) < local_DATA_REC.size:
                 raise IOError(_('Incomplete data record at end of %s') % f.name)
             else:
-                data = DataRecord(*DATA_REC.unpack(buf))
+                data = local_DataRecord(*local_DATA_REC.unpack(buf))
                 yield data._replace(timestamp=data.timestamp + offset)
 
     def _play_controls_setup(self, filename):
@@ -875,6 +882,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.ui.environment_grid.props.sensitive = True
         self.ui.gyro_grid.props.sensitive = True
         self.ui.colour_grid.props.sensitive = True
+        self.ui.colour_grid.props.visible = True
         self._play_thread = None
         # If an exception occurred in the background thread, display the
         # error in an appropriate dialog
