@@ -478,58 +478,31 @@ class ColourSensor:
     def colour_raw(self):
         return self.interface.get_raw()
 
+    color_raw = colour_raw
+    red_raw = property(lambda self: self.interface.get_red())
+    green_raw = property(lambda self: self.interface.get_green())
+    blue_raw = property(lambda self: self.interface.get_blue())
+    clear_raw = property(lambda self: self.interface.get_clear())
+
+    @property
+    def _scaling(self):
+        return self.max_raw // 256
+    
     @property
     def colour(self):
-        scaling = self.max_raw // 256
-        return tuple(reading // scaling for reading in self.colour_raw)
+        return tuple(reading // self._scaling for reading in self.colour_raw)
 
-    color_raw = colour_raw
     color = colour
-
-    # For the following, could also use something like:
-    # red_raw = property(lambda self: self.interface.get_red())
-
-    @property
-    def red_raw(self):
-        return self.interface.get_red()
-    
-    @property
-    def green_raw(self):
-        return self.interface.get_green()
-
-    @property
-    def blue_raw(self):
-        return self.interface.get_blue()
-
-    @property
-    def clear_raw(self):
-        return self.interface.get_clear()
-
-    @property
-    def red(self):
-        return self.red_raw // self._scaling
-    
-    @property
-    def green(self):
-        return self.green_raw // self._scaling
-
-    @property
-    def blue(self):
-        return self.blue_raw // self._scaling
-
-    @property
-    def clear(self):
-        return self.clear_raw // self._scaling
+    red = property(lambda self: self.red_raw // self._scaling )
+    green = property(lambda self: self.green_raw // self._scaling )
+    blue = property(lambda self: self.blue_raw // self._scaling )
+    clear = property(lambda self: self.clear_raw // self._scaling )
 
 
 class ColourServer:
 
     def __init__(self):
         self.emulated_sensor = ColourSensor(interface=StatusFile)
-
-        # The queue lengths are selected to accurately represent the response
-        # time of the sensors
-        # self._colours = np.full((10,), self._humidity, dtype=np.float)
 
     def close(self):
         self.emulated_sensor.interface.close()

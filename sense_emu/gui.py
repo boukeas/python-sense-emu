@@ -57,7 +57,8 @@ from .humidity import HumidityServer
 from .colour import ColourServer
 from .stick import StickServer, SenseStick
 from .lock import EmulatorLock
-from .common import HEADER_REC, DATA_REC, DATA_REC_v2, DataRecord, DataRecord_v2, slow_pi
+from .common import slow_pi
+from .recording import Recording
 
 
 def main():
@@ -737,25 +738,15 @@ class MainWindow(Gtk.ApplicationWindow):
     def toggle_orientation(self, button):
         self.ui.screen_widget.props.orientation = not self.ui.screen_widget.props.orientation
 
-    def _play_run(self, f):
+    def _play_run(self, filename):
         err = None
         try:
-            magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
-            if magic != b'SENSEHAT':
-                raise IOError(_('%s is not a Sense HAT recording') % f.name)
-            if ver == 1:
-                local_DATA_REC = DATA_REC
+            recording = Recording(filename)
+            if recording.version == 1:
                 self.ui.colour_grid.props.visible = False
-            elif ver == 2:
-                local_DATA_REC = DATA_REC_v2
-            else:
-                raise IOError(_('%s has unrecognized file version number') % f.name)
-            # Calculate how many records are in the file; we'll use this later
-            # when updating the progress bar
-            rec_total = (f.seek(0, io.SEEK_END) - HEADER_REC.size) // local_DATA_REC.size
-            f.seek(0)
+            rec_total = recording.nb_records
             skipped = 0
-            for rec, data in enumerate(self._play_source(f)):
+            for rec, data in enumerate(recording.read_rows()):
                 now = time()
                 if data.timestamp < now:
                     skipped += 1
@@ -771,7 +762,7 @@ class MainWindow(Gtk.ApplicationWindow):
                     (data.cx, data.cy, data.cz),
                     (data.ox, data.oy, data.oz),
                     )
-                if ver > 1:
+                if recording.version > 1:
                     self.props.application.colour.set_raw(
                         data.R,
                         data.G,
@@ -791,7 +782,7 @@ class MainWindow(Gtk.ApplicationWindow):
         except Exception as e:
             err = e
         finally:
-            f.close()
+            recording.close()
             # Must ensure that controls are only re-enabled *after* all pending
             # control updates have run
             with self._play_update_lock:
@@ -832,29 +823,6 @@ class MainWindow(Gtk.ApplicationWindow):
             self._play_event.set()
             self._play_thread.join()
             self._play_thread = None
-
-    def _play_source(self, f):
-        magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
-        if magic != b'SENSEHAT':
-            raise IOError(_('%s is not a Sense HAT recording') % f.name)
-        if ver == 1:
-            local_DATA_REC = DATA_REC
-            local_DataRecord = DataRecord
-        elif ver == 2:
-            local_DATA_REC = DATA_REC_v2
-            local_DataRecord = DataRecord_v2
-        else:
-            raise IOError(_('%s has unrecognized file version number') % f.name)
-        offset = time() - offset
-        while True:
-            buf = f.read(local_DATA_REC.size)
-            if not buf:
-                break
-            elif len(buf) < local_DATA_REC.size:
-                raise IOError(_('Incomplete data record at end of %s') % f.name)
-            else:
-                data = local_DataRecord(*local_DATA_REC.unpack(buf))
-                yield data._replace(timestamp=data.timestamp + offset)
 
     def _play_controls_setup(self, filename):
         # Disable all the associated user controls while playing back
@@ -904,7 +872,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def play(self, filename):
         self._play_stop()
         self._play_controls_setup(filename)
-        self._play_thread = Thread(target=self._play_run, args=(io.open(filename, 'rb'),))
+        self._play_thread = Thread(target=self._play_run, args=(filename,))
         self._play_event.clear()
         self._play_thread.start()
 

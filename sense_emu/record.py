@@ -36,7 +36,7 @@ from struct import Struct
 from . import __version__
 from .i18n import _
 from .terminal import TerminalApplication, FileType
-from .common import HEADER_REC, DATA_REC, DATA_REC_v2
+from .recording import Recording
 from .colour import ColourSensor, I2C
 
 
@@ -72,7 +72,7 @@ class RecordApplication(TerminalApplication):
             '-f', '--flush', dest='flush', action='store_true', default=False,
             help=_('flush every record to disk immediately; reduces chances of '
             'truncated data on power loss, but greatly increases disk activity'))
-        self.parser.add_argument('output', type=FileType('wb'))
+        self.parser.add_argument('output')
 
     def main(self, args):
         try:
@@ -116,7 +116,8 @@ class RecordApplication(TerminalApplication):
             terminate_at = time() + args.duration
         else:
             terminate_at = time() + 1e100
-        args.output.write(HEADER_REC.pack(b'SENSEHAT', ver, time()))
+
+        recording = Recording(args.output, write=True, version=ver)
         status_stop = Event()
         def status():
             while not status_stop.wait(1.0):
@@ -134,36 +135,23 @@ class RecordApplication(TerminalApplication):
                     ox, oy, oz = imu.getFusionData()
                     pvalid, pressure, ptvalid, ptemp = psensor.pressureRead()
                     hvalid, humidity, htvalid, htemp = hsensor.humidityRead()
-                    if ver == 1:
-                        args.output.write(DATA_REC.pack(
-                            timestamp,
-                            pressure if pvalid else nan,
-                            ptemp if ptvalid else nan,
-                            humidity if hvalid else nan,
-                            htemp if htvalid else nan,
-                            ax, ay, az,
-                            gx, gy, gz,
-                            cx, cy, cz,
-                            ox, oy, oz
-                            ))
-                    else:
-                        R, G, B, C = csensor.colour_raw
-                        args.output.write(DATA_REC_v2.pack(
-                            timestamp,
-                            pressure if pvalid else nan,
-                            ptemp if ptvalid else nan,
-                            humidity if hvalid else nan,
-                            htemp if htvalid else nan,
-                            ax, ay, az,
-                            gx, gy, gz,
-                            cx, cy, cz,
-                            ox, oy, oz,
-                            R, G, B, C,
+                    data = (
+                        timestamp,
+                        pressure if pvalid else nan,
+                        ptemp if ptvalid else nan,
+                        humidity if hvalid else nan,
+                        htemp if htvalid else nan,
+                        ax, ay, az,
+                        gx, gy, gz,
+                        cx, cy, cz,
+                        ox, oy, oz
+                    )
+                    if ver == 2:
+                        data = data + csensor.colour_raw + (
                             gain,
                             integration_cycles-1
-                            ))
-                    if args.flush:
-                        args.output.flush()
+                        )
+                    recording.write_row(data, args.flush)
                     rec_count += 1
                 if timestamp > terminate_at:
                     break
@@ -174,7 +162,7 @@ class RecordApplication(TerminalApplication):
             status_stop.set()
             status_thread.join()
             logging.info(_('Finishing recording after %d records'), rec_count)
-            args.output.close()
+            recording.close()
 
 
 app = RecordApplication()

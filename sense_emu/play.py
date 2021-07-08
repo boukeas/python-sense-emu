@@ -27,19 +27,19 @@ str = type('')
 import os
 import logging
 import argparse
-import datetime as dt
+from datetime import datetime
 from time import time, sleep
 from struct import Struct
 
 from . import __version__
 from .i18n import _
 from .terminal import TerminalApplication, FileType
-from .common import DataRecord, DataRecord_v2, HEADER_REC, DATA_REC, DATA_REC_v2
 from .imu import IMUServer
 from .pressure import PressureServer
 from .humidity import HumidityServer
 from .lock import EmulatorLock
 from .colour import ColourSensor, ColourServer
+from .recording import Recording
 
 
 class PlayApplication(TerminalApplication):
@@ -48,34 +48,7 @@ class PlayApplication(TerminalApplication):
             version=__version__,
             description=_("Replays readings recorded from a Raspberry Pi "
                 "Sense HAT, via the Sense HAT emulation library."))
-        self.parser.add_argument('input', type=FileType('rb'))
-
-    def source(self, f):
-        logging.info(_('Reading header'))
-        magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
-        if magic != b'SENSEHAT':
-            raise IOError(_('Invalid magic number at start of input'))
-        if ver == 1:
-            local_DATA_REC = DATA_REC
-            local_DataRecord = DataRecord
-        elif ver == 2:
-            local_DATA_REC = DATA_REC_v2
-            local_DataRecord = DataRecord_v2
-        else:
-            raise IOError(_('%s has unrecognized file version number') % f.name)
-        logging.info(
-            _('Playing back recording taken at %s'),
-            dt.datetime.fromtimestamp(offset).strftime('%c'))
-        offset = time() - offset
-        while True:
-            buf = f.read(local_DATA_REC.size)
-            if not buf:
-                break
-            elif len(buf) < local_DATA_REC.size:
-                raise IOError(_('Incomplete data record at end of file'))
-            else:
-                data = local_DataRecord(*local_DATA_REC.unpack(buf))
-                yield data._replace(timestamp=data.timestamp + offset)
+        self.parser.add_argument('input')
 
     def main(self, args):
         lock = EmulatorLock('sense_play')
@@ -92,7 +65,12 @@ class PlayApplication(TerminalApplication):
             hsensor = HumidityServer(simulate_noise=False)
             csensor = ColourServer()
             skipped = 0
-            for rec, data in enumerate(self.source(args.input)):
+            logging.info(_('Reading header'))
+            recording = Recording(args.input)
+            logging.info(
+                _('Playing back recording taken at'),
+                datetime.fromtimestamp(recording.offset).strftime('%c'))
+            for rec, data in enumerate(recording.read_rows()):
                 now = time()
                 if data.timestamp < now:
                     if not skipped:
@@ -123,6 +101,7 @@ class PlayApplication(TerminalApplication):
             if skipped:
                 logging.warning(_('Skipped %d records during playback'), skipped)
             logging.info(_('Finished playback of %d records'), rec)
+            recording.close()
         finally:
             lock.release()
 

@@ -30,14 +30,14 @@ import os
 import csv
 import logging
 import argparse
-import datetime as dt
+from datetime import datetime
 from time import time, sleep
 from struct import Struct
 
 from . import __version__
 from .i18n import _
 from .terminal import TerminalApplication, FileType
-from .common import HEADER_REC, DATA_REC, DataRecord
+from .recording import Recording
 
 
 class DumpApplication(TerminalApplication):
@@ -53,37 +53,22 @@ class DumpApplication(TerminalApplication):
         self.parser.add_argument(
             '--header', action='store_true', default=False,
             help=_('if specified, output column headers'))
-        self.parser.add_argument('input', type=FileType('rb'))
+        self.parser.add_argument('input')
         # Eurgh ... csv module under Python 2 only outputs byte-strings
         if sys.version_info.major == 2:
             self.parser.add_argument('output', type=FileType('wb'))
         else:
             self.parser.add_argument('output', type=FileType('w', encoding='utf-8'))
 
-    def source(self, f):
+    def main(self, args):
         logging.info(_('Reading header'))
-        magic, ver, offset = HEADER_REC.unpack(f.read(HEADER_REC.size))
-        if magic != b'SENSEHAT':
-            raise IOError(_('Invalid magic number at start of input'))
-        if ver != 1:
-            raise IOError(_('Unrecognized file version number (%d)') % ver)
+        recording = Recording(args.input)
+        writer = csv.writer(args.output)
         logging.info(
             _('Dumping recording taken at %s'),
-            dt.datetime.fromtimestamp(offset).strftime('%c'))
-        offset = time() - offset
-        while True:
-            buf = f.read(DATA_REC.size)
-            if not buf:
-                break
-            elif len(buf) < DATA_REC.size:
-                raise IOError(_('Incomplete data record at end of file'))
-            else:
-                yield DataRecord(*DATA_REC.unpack(buf))
-
-    def main(self, args):
-        writer = csv.writer(args.output)
+            datetime.fromtimestamp(recording.offset).strftime('%c'))
         if args.header:
-            writer.writerow((
+            header = (
                 'timestamp',
                 'pressure', 'pressure_temp',
                 'humidity', 'humidity_temp',
@@ -91,17 +76,20 @@ class DumpApplication(TerminalApplication):
                 'gyro_x', 'gyro_y', 'gyro_z',
                 'compass_x', 'compass_y', 'compass_z',
                 'orient_x', 'orient_y', 'orient_z',
-                ))
-        for rec, data in enumerate(self.source(args.input)):
-            writer.writerow((
-                dt.datetime.fromtimestamp(data.timestamp).strftime(args.timestamp_format),
-                data.pressure, data.ptemp,
-                data.humidity, data.htemp,
-                data.ax, data.ay, data.az,
-                data.gx, data.gy, data.gz,
-                data.cx, data.cy, data.cz,
-                data.ox, data.oy, data.oz,
-                ))
+            )
+            if recording.version == 2:
+                header = header + (
+                    'R', 'G', 'B', 'C',
+                    'gain',
+                    'integration_cycles'
+                )
+            writer.writerow(header)
+        print(args.timestamp_format)
+        for rec, data in enumerate(recording.read_rows()):
+            data = data._replace(
+                timestamp = datetime.fromtimestamp(data.timestamp).strftime(args.timestamp_format)
+            )
+            writer.writerow(data)
         logging.info(_('Converted %d records'), rec)
 
 
