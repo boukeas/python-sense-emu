@@ -1,3 +1,9 @@
+sense-emu (1.2.0~test0) UNRELEASED; urgency=medium
+
+  * Add support for the colour sensor in the new Sense Hat (alpha)
+
+ -- George Boukeas <george.boukeas@raspberrypi.org>  Wed, 21 Jul 2021 16:00:00 +0000
+
 sense-emu (1.1-1ubuntu2) xenial; urgency=medium
 
   * Another release to work around test build-deps issue
