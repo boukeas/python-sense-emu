@@ -1,7 +1,7 @@
 # vim: set noet sw=4 ts=4 fileencoding=utf-8:
 
 # External utilities
-PYTHON=python
+PYTHON=python3
 PIP=pip
 PYTEST=py.test
 COVERAGE=coverage
@@ -78,8 +78,7 @@ SUBDIRS:=icons
 DIST_WHEEL=dist/$(PKG_DIR)-$(VER)-py2.py3-none-any.whl
 DIST_TAR=dist/$(NAME)-$(VER).tar.gz
 DIST_ZIP=dist/$(NAME)-$(VER).zip
-DIST_DEB=dist/python-$(NAME)_$(VER)$(DEB_SUFFIX)_all.deb \
-	dist/python3-$(NAME)_$(VER)$(DEB_SUFFIX)_all.deb \
+DIST_DEB=dist/python3-$(NAME)_$(VER)$(DEB_SUFFIX)_all.deb \
 	dist/python-$(NAME)-doc_$(VER)$(DEB_SUFFIX)_all.deb \
 	dist/$(NAME)-tools_$(VER)$(DEB_SUFFIX)_all.deb \
 	dist/$(NAME)_$(VER)$(DEB_SUFFIX)_$(DEB_ARCH).build \
